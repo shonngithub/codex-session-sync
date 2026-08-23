@@ -34,11 +34,18 @@ export function createWebDAVClient(webdavConfig) {
      * 列出远端目录内容（递归）
      * 注意：不用 deep:true（Depth: infinity），许多服务器出于安全默认拒绝（403），
      * 改为逐层 Depth:1 递归，兼容性更好。
-     * @param {string} remotePath  相对于 remote_path 的路径，默认为根
+     * @param {string} remotePath  相对于 remote_path 的路径，默认为根；
+     *                             也接受完整的 remote_path（或其子路径）以避免误传导致路径重复拼接
      * @returns {Promise<Array<{ rel, mtime, size }>>}
      */
     async list(remotePath = '') {
-      const target = remotePath ? fullPath(remotePath) : baseRemotePath;
+      // remotePath 为空 → 列 baseRemotePath 根目录；
+      // remotePath 已是 baseRemotePath 或其子路径 → 直接使用，避免 fullPath() 二次拼接产生重复前缀
+      const target = remotePath
+        ? (remotePath === baseRemotePath || remotePath.startsWith(baseRemotePath + '/')
+            ? remotePath
+            : fullPath(remotePath))
+        : baseRemotePath;
       const files = [];
       await listRecursive(raw, target, files);
       return files.map(item => ({
