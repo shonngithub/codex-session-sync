@@ -1,0 +1,32 @@
+import { jest, test, expect, beforeAll, afterAll } from '@jest/globals';
+import express from 'express';
+const list = jest.fn();
+const applyPlan = jest.fn();
+jest.unstable_mockModule('../src/webdav-client.js', () => ({ createWebDAVClient: () => ({ list }) }));
+jest.unstable_mockModule('../src/scanner.js', () => ({ scanCodexHome: async () => ({ allFiles: [{ rel: 'local.jsonl', size: 10, mtime: 1000 }] }) }));
+jest.unstable_mockModule('../src/process-check.js', () => ({ isCodexRunning: async () => false }));
+jest.unstable_mockModule('../src/sync-engine.js', () => ({ buildSyncPlan: jest.fn(), applyPlan }));
+const { router } = await import('../src/api/sync.js');
+let server, url;
+beforeAll(async () => {
+  const app = express();
+  app.locals.cfg = { webdav: { remote_path: '/codex' } };
+  app.locals.log = { info() {}, error() {} };
+  app.use('/api/sync', router);
+  server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  url = `http://127.0.0.1:${server.address().port}/api/sync`;
+});
+afterAll(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+test.each(['401 Unauthorized', '403 Forbidden', 'network timeout'])('listing failure %s stops preview and apply', async message => {
+  list.mockRejectedValue(new Error(message));
+  const preview = await fetch(`${url}/plan`, { method: 'POST' });
+  expect(preview.status).toBe(500);
+  expect(await preview.json()).toEqual({ error: message });
+  const apply = await fetch(`${url}/apply`, { method: 'POST' });
+  const events = await apply.text();
+  expect(events).toContain('"type":"error"');
+  expect(events).toContain(message);
+  expect(events).not.toContain('"type":"start"');
+  expect(applyPlan).not.toHaveBeenCalled();
+});

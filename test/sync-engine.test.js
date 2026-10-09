@@ -102,3 +102,28 @@ describe('buildPlan', () => {
     expect(plan.unchanged).toContain('b.jsonl');
   });
 });
+
+test('download preserves remote mtime, so the next preview does not re-upload', async () => {
+  const { applyPlan } = await import('../src/sync-engine.js');
+  const { mkdtempSync, statSync, rmSync, readFileSync } = await import('fs');
+  const { tmpdir } = await import('os');
+  const { join } = await import('path');
+  const base = mkdtempSync(join(tmpdir(), 'cxsync-mtime-'));
+  const rel = 'sessions/remote.jsonl';
+  const content = Buffer.from('remote content');
+  const mtime = Date.parse('2020-01-01T00:00:00Z');
+  try {
+    const remoteFiles = [{ rel, size: content.length, mtime }];
+    const plan = buildPlan({ localFiles: [], remoteFiles, config: BASE_CONFIG });
+    const result = await applyPlan({ plan, config: BASE_CONFIG, localBase: base,
+      webdavClient: { stat: async () => ({ size: content.length, mtime }), getFile: async () => content } });
+    expect(result.errors).toEqual([]);
+    expect(result.downloaded).toBe(1);
+    expect(readFileSync(join(base, rel))).toEqual(content);
+    const st = statSync(join(base, rel));
+    const next = buildPlan({ localFiles: [{ rel, size: st.size, mtime: st.mtimeMs }], remoteFiles, config: BASE_CONFIG });
+    expect(next.to_upload).toEqual([]);
+    expect(next.to_download).toEqual([]);
+    expect(next.unchanged).toEqual([rel]);
+  } finally { rmSync(base, { recursive: true, force: true }); }
+});

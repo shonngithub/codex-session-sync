@@ -18,7 +18,7 @@ export function createWebDAVClient(webdavConfig) {
   });
 
   // 规范化 remote_path：确保以 / 开头、不以 / 结尾
-  const baseRemotePath = ('/' + remote_path.replace(/^\//, '')).replace(/\/$/, '') || '/';
+  const baseRemotePath = '/' + remote_path.replace(/\\/g, '/').split('/').filter(Boolean).join('/');
 
   /**
    * 拼接完整远端路径
@@ -26,7 +26,7 @@ export function createWebDAVClient(webdavConfig) {
    */
   function fullPath(rel) {
     const normalized = rel.replace(/\\/g, '/').replace(/^\//, '');
-    return baseRemotePath + '/' + normalized;
+    return (baseRemotePath === '/' ? '' : baseRemotePath) + '/' + normalized;
   }
 
   return {
@@ -42,12 +42,12 @@ export function createWebDAVClient(webdavConfig) {
       // remotePath 为空 → 列 baseRemotePath 根目录；
       // remotePath 已是 baseRemotePath 或其子路径 → 直接使用，避免 fullPath() 二次拼接产生重复前缀
       const target = remotePath
-        ? (remotePath === baseRemotePath || remotePath.startsWith(baseRemotePath + '/')
+        ? (remotePath === baseRemotePath || remotePath.startsWith(baseRemotePath === '/' ? '/' : baseRemotePath + '/')
             ? remotePath
             : fullPath(remotePath))
         : baseRemotePath;
       const files = [];
-      await listRecursive(raw, target, files);
+      await listRecursive(raw, target, files, true);
       return files.map(item => ({
         // rel 相对于 baseRemotePath
         rel: item.filename.replace(baseRemotePath, '').replace(/^\//, '').replace(/\\/g, '/'),
@@ -130,15 +130,15 @@ export function createWebDAVClient(webdavConfig) {
 
 /**
  * 逐层递归列出目录下所有文件（Depth: 1 PROPFIND）
- * 目录不存在（404）时静默返回
+ * 仅首次请求的根目录不存在（404）时返回空列表；子目录读取失败必须报错
  */
-async function listRecursive(rawClient, dirPath, acc) {
+async function listRecursive(rawClient, dirPath, acc, allowMissing = false) {
   let items;
   try {
     items = await rawClient.getDirectoryContents(dirPath);
   } catch (err) {
     const status = err?.status ?? err?.response?.status;
-    if (status === 404) return;
+    if (status === 404 && allowMissing) return;
     throw err;
   }
   for (const item of items) {

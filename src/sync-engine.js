@@ -1,6 +1,6 @@
 // src/sync-engine.js — 同步计划生成与执行（纯逻辑层，便于测试）
 import { createHash } from 'crypto';
-import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, utimesSync } from 'fs';
 import { dirname, join } from 'path';
 
 // ─── 工具函数 ────────────────────────────────────────────────────────────────
@@ -192,10 +192,17 @@ export async function applyPlan({
     onProgress({ file: rel, action: 'download', n, total });
     try {
       const localPath = join(localBase, rel);
+      // Read metadata before content so a later remote edit is detected next time.
+      const remoteStat = await webdavClient.stat(rel);
+      if (!Number.isFinite(remoteStat?.mtime)) {
+        throw new Error(`Remote modification time unavailable: ${rel}`);
+      }
       const buf = await webdavClient.getFile(rel);
       if (backupEnabled) backupLocal(localPath, config);
       mkdirSync(dirname(localPath), { recursive: true });
       writeFileSync(localPath, buf);
+      const remoteTime = new Date(remoteStat.mtime);
+      utimesSync(localPath, remoteTime, remoteTime);
       downloaded++;
     } catch (err) {
       errors.push({ rel, action: 'download', reason: err.message });

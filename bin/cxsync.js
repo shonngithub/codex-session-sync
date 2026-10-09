@@ -70,7 +70,7 @@ program
     const local = await scanCodexHome(cfg.codex_home);
     const dav = createWebDAVClient(cfg.webdav);
     log.info('Fetching remote file list…');
-    const remoteFiles = await dav.list(cfg.webdav.remote_path).catch(() => []);
+    const remoteFiles = await dav.list();
 
     const plan = buildSyncPlan({ localFiles: local.allFiles, remoteFiles, config: cfg });
     console.log(JSON.stringify(plan, null, 2));
@@ -101,7 +101,7 @@ program
 
     const local = await scanCodexHome(cfg.codex_home);
     const dav = createWebDAVClient(cfg.webdav);
-    const remoteFiles = await dav.list(cfg.webdav.remote_path).catch(() => []);
+    const remoteFiles = await dav.list();
     const plan = buildSyncPlan({ localFiles: local.allFiles, remoteFiles, config: cfg });
 
     if (opts.dryRun) {

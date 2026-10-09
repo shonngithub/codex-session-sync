@@ -65,7 +65,7 @@ describe('e2e: WebDAV sync', () => {
   test('initial sync uploads all local files', async () => {
     const dav = createWebDAVClient(davConfig);
     const localFiles = localFileList(localDir);
-    const remoteFiles = await dav.list().catch(() => []);
+    const remoteFiles = await dav.list(davConfig.remote_path);
 
     const plan = buildPlan({ localFiles, remoteFiles, config: CONFIG });
     expect(plan.to_upload.length).toBe(2);
@@ -83,7 +83,7 @@ describe('e2e: WebDAV sync', () => {
   test('second sync is a no-op', async () => {
     const dav = createWebDAVClient(davConfig);
     const localFiles = localFileList(localDir);
-    const remoteFiles = await dav.list();
+    const remoteFiles = await dav.list(davConfig.remote_path);
 
     const plan = buildPlan({ localFiles, remoteFiles, config: CONFIG });
     expect(plan.to_upload).toHaveLength(0);
@@ -98,7 +98,7 @@ describe('e2e: WebDAV sync', () => {
       Buffer.from('{"type":"session_meta","payload":{"cwd":"/other"}}\n'));
 
     const localFiles = localFileList(localDir);
-    const remoteFiles = await dav.list();
+    const remoteFiles = await dav.list(davConfig.remote_path);
     const plan = buildPlan({ localFiles, remoteFiles, config: CONFIG });
     expect(plan.to_download).toContain('sessions/2026/07/17/rollout-remote-new.jsonl');
 

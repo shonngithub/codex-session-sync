@@ -13,7 +13,7 @@ router.post('/plan', async (req, res) => {
   try {
     const local = await scanCodexHome(cfg.codex_home);
     const dav = createWebDAVClient(cfg.webdav);
-    const remoteFiles = await dav.list(cfg.webdav.remote_path).catch(() => []);
+    const remoteFiles = await dav.list();
     const plan = buildSyncPlan({ localFiles: local.allFiles, remoteFiles, config: cfg });
     res.json({ plan });
   } catch (e) {
@@ -35,7 +35,7 @@ router.post('/apply', async (req, res) => {
 
     const local = await scanCodexHome(cfg.codex_home);
     const dav = createWebDAVClient(cfg.webdav);
-    const remoteFiles = await dav.list(cfg.webdav.remote_path).catch(() => []);
+    const remoteFiles = await dav.list();
     const plan = buildSyncPlan({ localFiles: local.allFiles, remoteFiles, config: cfg });
 
     const total = plan.to_upload.length + plan.to_download.length;
