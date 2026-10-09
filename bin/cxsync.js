@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name('cxsync')
   .description('Codex session sync — local-first backup and WebDAV sync with Web GUI')
-  .version('0.1.0')
+  .version('0.1.1')
   .option('-c, --config <path>', 'path to config.yml')
   .option('-v, --verbose', 'verbose output');
 

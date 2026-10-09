@@ -1,6 +1,6 @@
 {
   "name": "codex-session-sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sync, back up, and manage local OpenAI Codex sessions across machines via WebDAV — CLI + local Web GUI. Cold sync, snapshots, session rename/delete, provider merge.",
   "author": "shonn",
   "repository": {

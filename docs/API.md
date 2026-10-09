@@ -131,5 +131,5 @@ or `{ "ok": false, "error": "401 Unauthorized" }`
 
 ### GET /api/health
 ```json
-{ "ok": true, "codex_running": false, "version": "0.1.0" }
+{ "ok": true, "codex_running": false, "version": "0.1.1" }
 ```

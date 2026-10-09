@@ -39,7 +39,7 @@ export async function startServer(cfg, log, { openBrowser = true } = {}) {
   app.get('/api/health', async (_req, res) => {
     const { isCodexRunning } = await import('./process-check.js');
     const codex_running = await isCodexRunning().catch(() => null);
-    res.json({ ok: true, codex_running, version: '0.1.0' });
+    res.json({ ok: true, codex_running, version: '0.1.1' });
   });
 
   // ── 404 fallback ──────────────────────────────────────────────────────────
